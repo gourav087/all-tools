@@ -1,0 +1,57 @@
+---
+- name: Install Docker and deploy website
+  hosts: all
+  become: true
+
+  tasks:
+    - name: Wait for SSH connection
+      ansible.builtin.wait_for_connection:
+        timeout: 300
+        sleep: 10
+
+    - name: Update Ubuntu packages
+      ansible.builtin.apt:
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Install Docker
+      ansible.builtin.apt:
+        name: docker.io
+        state: present
+
+    - name: Start Docker service
+      ansible.builtin.service:
+        name: docker
+        state: started
+        enabled: true
+
+    - name: Create website directory
+      ansible.builtin.file:
+        path: /opt/jacit-site/app
+        state: directory
+        mode: "0755"
+
+    - name: Copy HTML file
+      ansible.builtin.copy:
+        src: ../app/index.html
+        dest: /opt/jacit-site/app/index.html
+        mode: "0644"
+
+    - name: Copy Dockerfile
+      ansible.builtin.copy:
+        src: ../docker/Dockerfile
+        dest: /opt/jacit-site/Dockerfile
+        mode: "0644"
+
+    - name: Build Docker image
+      ansible.builtin.command:
+        cmd: docker build -t jacit-website:latest .
+        chdir: /opt/jacit-site
+
+    - name: Remove previous container if present
+      ansible.builtin.shell: docker rm -f jacit-website || true
+      changed_when: false
+
+    - name: Run website container
+      ansible.builtin.command:
+        cmd: docker run -d --restart unless-stopped --name jacit-website -p 80:80 jacit-website:latest
