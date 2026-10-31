@@ -73,7 +73,7 @@ pipeline {
             steps {
                 withCredentials([
                     file(
-                        credentialsId: 'terraform-tfvars',
+                        credentialsId: 'app-ssh-key',
                         variable: 'SSH_KEY'
                     )
                 ]) {
