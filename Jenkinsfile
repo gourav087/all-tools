@@ -65,16 +65,18 @@ pipeline {
                     ).trim()
                 }
 
-                echo 'Application EC2 created'
+                echo "Application Private IP: ${APP_PRIVATE_IP}"
+                echo "Application Public IP: ${APP_PUBLIC_IP}"
             }
         }
 
         stage('Ansible Deployment') {
             steps {
                 withCredentials([
-                    file(
+                    sshUserPrivateKey(
                         credentialsId: 'app-ssh-key',
-                        variable: 'SSH_KEY'
+                        keyFileVariable: 'SSH_KEY',
+                        usernameVariable: 'SSH_USER'
                     )
                 ]) {
                     sh '''
@@ -82,7 +84,7 @@ pipeline {
 
                         ansible-playbook \
                           -i "${APP_PRIVATE_IP}," \
-                          -u ubuntu \
+                          -u "$SSH_USER" \
                           --private-key "$SSH_KEY" \
                           --ssh-common-args='-o StrictHostKeyChecking=no' \
                           ansible/deploy.yml
